@@ -1,15 +1,12 @@
-import requests, json, os, time, math
+import requests, json, math
 from datetime import datetime, timezone
 
 api_key = "RGAPI-0340816b-f6d0-4788-a807-f005932afb3a"
 
-perk = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perks.json"
-perk_styles = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perkstyles.json"
+VERSION_URL = "https://ddragon.leagueoflegends.com/api/versions.json"
+DD_URL = "https://ddragon.leagueoflegends.com/cdn"
 
-perk_json = requests.get(perk).json()
-perk_styles_json = requests.get(perk).json()
-
-def account_info_by_name(username, tagline): # Returns players puuid
+def account_info_by_name(username, tagline):
   account_request_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{username}/{tagline}?api_key={api_key}"
   account_info_by_name = requests.get(account_request_url).json()
   player_puuid = account_info_by_name['puuid']
@@ -19,6 +16,11 @@ def matches_list(player_puuid): # Returns matchid of last 20 matches in list
   match_puuid_request_url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{player_puuid}/ids?start=0&count=20&api_key={api_key}"
   matches_list = requests.get(match_puuid_request_url).json()
   return matches_list
+
+def get_static_info():
+  latest_patch = requests.get(VERSION_URL)
+  summoner_info = requests.get(f"{DD_URL}/{latest_patch}/data/en_US/summoner.json")
+
 
 def match_info_overall(match_id, player_puuid): # Returns relevant match data that is shared between all players such as game time, date game was played, etc.
   match_url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={api_key}"
