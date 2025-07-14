@@ -17,20 +17,31 @@ def matches_list(player_puuid): # Returns matchid of last 20 matches in list
   matches_list = requests.get(match_puuid_request_url).json()
   return matches_list
 
-def get_static_info():
+def get_static_summoners():
   latest_patch = requests.get(VERSION_URL)
-  summoner_info = requests.get(f"{DD_URL}/{latest_patch}/data/en_US/summoner.json")
+  summoner_json = requests.get(f"{DD_URL}/{latest_patch}/data/en_US/summoner.json")
+  summoners_dict = {int(summoner["key"]): summoner["name"] for summoner in summoner_json["data"].values()}
+  summoners_icon = {summoner["key"]: summoner["image"]["sprite"] for summoner in summoner_json["data"].values()}
+  return summoners_dict, summoners_icon
+
+
+def get_static_items():
+  latest_patch = requests.get(VERSION_URL)
+  item_json = requests.get(f"{DD_URL}/{latest_patch}/data/en_US/item.json")
+  item_dict = {int(item_id): item_info["name"] for item_id, item_info in item_json["data"].items()}
+  item_icon = {int(item_id): item_info["image"]["sprite"] for item_id, item_info in item_json["data"].items()}
+
 
 
 def match_info_overall(match_id, player_puuid): # Returns relevant match data that is shared between all players such as game time, date game was played, etc.
   match_url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={api_key}"
   match_info_overall_json = requests.get(match_url).json()
+  summoners_dict, summoners_icon = get_static_summoners()
 
   player_index = match_info_overall_json['metadata']['participants'].index(player_puuid)
 
   game_type = match_info_overall_json['info']['queueId']
   
-  game_date = datetime.fromtimestamp(game_ms / 1000, tz=timezone.utc).strftime('%m/%d/%Y')
   did_win = match_info_overall_json['info']['participants'][player_index]['win']
   
   game_ms = match_info_overall_json['info']['gameCreation']
@@ -42,11 +53,18 @@ def match_info_overall(match_id, player_puuid): # Returns relevant match data th
   else:
     game_duration = f"{min_game}m {game_sec}s"
   
+    game_date = datetime.fromtimestamp(game_ms / 1000, tz=timezone.utc).strftime('%m/%d/%Y')
+  
   player_champion = match_info_overall_json['info']['participants'][player_index]['championName']
 
-  player_summoner1 = match_info_overall_json['info']['participants'][player_index]['summoner1Id']
-  player_summoner2 = match_info_overall_json['info']['participants'][player_index]['summoner1Id']
+  summoner1id = match_info_overall_json['info']['participants'][player_index]['summoner1Id']
+  summoner2id = match_info_overall_json['info']['participants'][player_index]['summoner2Id']
 
+  summoner1 = summoners_dict[summoner1id]
+  summoner2 = summoners_dict[summoner2id]
+
+  summoner1_icon = summoners_icon[summoner1]
+  summoner2_icon = summoners_icon[summoner2]
   
   
   major_rune = 
