@@ -30,19 +30,30 @@ def get_static_items():
   item_json = requests.get(f"{DD_URL}/{latest_patch}/data/en_US/item.json")
   item_dict = {int(item_id): item_info["name"] for item_id, item_info in item_json["data"].items()}
   item_icon = {int(item_id): item_info["image"]["sprite"] for item_id, item_info in item_json["data"].items()}
+  return item_dict, item_icon
 
+def get_static_runes():
+  latest_patch = requests.get(VERSION_URL)
+  rune_json = requests.get(f"{DD_URL}/{latest_patch}/data/en_US/runesReforged.json")
+  rune_dict = {int(rune_info["id"]): rune_info["name"] for rune_info in rune_json}
+  rune_icon = {int(rune_info["id"]): rune_info["icon"] for rune_info in rune_json}
+  return rune_dict, rune_icon
 
 
 def match_info_overall(match_id, player_puuid): # Returns relevant match data that is shared between all players such as game time, date game was played, etc.
   match_url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={api_key}"
   match_info_overall_json = requests.get(match_url).json()
   summoners_dict, summoners_icon = get_static_summoners()
+  rune_dict, rune_icon = get_static_runes()
+  item_dict, item_icon = get_static_items()
 
   player_index = match_info_overall_json['metadata']['participants'].index(player_puuid)
 
   game_type = match_info_overall_json['info']['queueId']
+
+  player_specific_info = match_info_overall_json['info']['participants'][player_index]
   
-  did_win = match_info_overall_json['info']['participants'][player_index]['win']
+  did_win = player_specific_info['win']
   
   game_ms = match_info_overall_json['info']['gameCreation']
   game_dur_sec = match_info_overall_json['info']['gameDuration']
@@ -53,26 +64,31 @@ def match_info_overall(match_id, player_puuid): # Returns relevant match data th
   else:
     game_duration = f"{min_game}m {game_sec}s"
   
-    game_date = datetime.fromtimestamp(game_ms / 1000, tz=timezone.utc).strftime('%m/%d/%Y')
+  game_date = datetime.fromtimestamp(game_ms / 1000, tz=timezone.utc).strftime('%m/%d/%Y')
   
-  player_champion = match_info_overall_json['info']['participants'][player_index]['championName']
+  player_champion = player_specific_info['championName']
 
-  summoner1id = match_info_overall_json['info']['participants'][player_index]['summoner1Id']
-  summoner2id = match_info_overall_json['info']['participants'][player_index]['summoner2Id']
+  summoner1id = player_specific_info['summoner1Id']
+  summoner2id = player_specific_info['summoner2Id']
 
   summoner1 = summoners_dict[summoner1id]
   summoner2 = summoners_dict[summoner2id]
-
   summoner1_icon = summoners_icon[summoner1]
   summoner2_icon = summoners_icon[summoner2]
   
-  
-  major_rune = 
-  minor_rune = 
+  major_rune_id = player_specific_info['perks'][0]['style']
+  minor_rune_id = player_specific_info['perks'][1]['style']
 
-  players_kills = match_info_overall_json['info']['participants'][player_index]['kills']
-  players_deaths = match_info_overall_json['info']['participants'][player_index]['deaths']
-  players_assists = match_info_overall_json['info']['participants'][player_index]['assists']
+  major_rune = rune_dict[major_rune_id]
+  minor_rune = rune_dict[minor_rune_id]
+  major_rune_icon = rune_icon[major_rune_id]
+  mainor_rune_icon = rune_icon[minor_rune_id]
+
+  players_kills = player_specific_info['kills']
+  players_deaths = player_specific_info['deaths']
+  players_assists = player_specific_info['assists']
+
+  item_ids = [player_specific_info[f'item{number}'] for number in range(7)]
 
   item0 =
   item1 =
@@ -83,25 +99,3 @@ def match_info_overall(match_id, player_puuid): # Returns relevant match data th
   item6 =
 
 
-
-
-def match_info_player_specific(match_id, player_puuid): # Returns specific match data for a specific player such as kills, deaths, assists, etc.
-  match_url = "https://americas.api.riotgames.com/lol/match/v5/matches/" + match_id + "?api_key=" + api_key
-  resp = requests.get(match_url)
-  match_info_overall_json = resp.json()
-
-
-  player_champion = match_info_overall_json['info']['participants'][player_index]['championName']
-
-  
-  player_kda = (players_kills + players_assists) / max(1, players_deaths)
-
-
-
-acc_info = account_info_by_name(input(), input())
-plyr_puuid = account_puuid(acc_info)
-match_list = matches_list(plyr_puuid)[0]
-# icon = profile_icon(plyr_puuid)
-# print(icon)
-match_inf = match_info_overall(match_list, plyr_puuid)
-print(match_inf)
